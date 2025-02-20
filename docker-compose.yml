@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadbtest
+    environment:
+      MYSQL_ROOT_PASSWORD: snlo2001
+      MYSQL_DATABASE: cutpark
+    ports:
+      - "3306:3306"  # Map the database port for access
+    volumes:
+      - mariadb_data:/var/lib/mysql  # Persist data between container restarts
+    networks:
+      - backend_network
+
+  backend:
+    build:
+      context: ./
+    container_name: backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/cutpark
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: snlo2001
+    ports:
+      - "8080:8080"  # Spring Boot app port
+    depends_on:
+      - mariadb
+    networks:
+      - backend_network
+
+networks:
+  backend_network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+    driver: local
