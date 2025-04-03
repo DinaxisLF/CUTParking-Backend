@@ -19,7 +19,7 @@ public class SecurityConfig {
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/public", "/login", "/oauth2/**").permitAll()
-                        .requestMatchers("/api/car/**", "/user/**").authenticated() // Protected paths
+                        .anyRequest().authenticated() // Protected paths
                 )
                 .logout(logout -> logout
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK))
