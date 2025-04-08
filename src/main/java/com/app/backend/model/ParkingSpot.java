@@ -50,10 +50,10 @@ public class ParkingSpot {
     private int id;
 
 
+    @Column(name = "location", columnDefinition = "POINT NOT NULL")
     @JsonSerialize(using = PointSerializer.class)
-    @Column(name = "location", nullable = false, columnDefinition = "POINT SRID 4326")
-    @JdbcTypeCode(SqlTypes.GEOMETRY)
     private Point location;
+
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -62,11 +62,15 @@ public class ParkingSpot {
     @Column(name = "created_at", updatable = false, insertable = false)
     private Timestamp createdAt;
 
+    @Column(name = "section" ,nullable = false)
+    private Character section;
+
     public ParkingSpot() {}
 
-    public ParkingSpot(Point location, ParkingStatus status) {
+    public ParkingSpot(Point location, ParkingStatus status, Character section) {
         this.location = location;
         this.status = status;
+        this.section = section;
     }
 
     public int getId() { return id; }
@@ -80,4 +84,12 @@ public class ParkingSpot {
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+
+    public Character getSection() {
+        return section;
+    }
+
+    public void setSection(Character section) {
+        this.section = section;
+    }
 }

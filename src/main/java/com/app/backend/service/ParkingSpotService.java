@@ -36,12 +36,12 @@ public class ParkingSpotService {
         return parkingSpotRepository.findByStatus(ParkingSpot.ParkingStatus.AVAILABLE);
     }
 
-    public ParkingSpot createSpot(double latitude, double longitude) {
+    public ParkingSpot createSpot(double latitude, double longitude, Character section) {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326); // Set SRID 4326
         Point location = geometryFactory.createPoint(new Coordinate(longitude, latitude));
         location.setSRID(4326); // Ensures spatial compatibility
 
-        ParkingSpot spot = new ParkingSpot(location, ParkingSpot.ParkingStatus.AVAILABLE);
+        ParkingSpot spot = new ParkingSpot(location, ParkingSpot.ParkingStatus.AVAILABLE, section);
         return parkingSpotRepository.save(spot);
     }
 

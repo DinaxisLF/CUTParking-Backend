@@ -1,59 +1,60 @@
 package com.app.backend.controllers;
 
-import com.app.backend.dto.UserDTO;
-import com.app.backend.model.User;
-import com.app.backend.repository.UserRepository;
-import com.app.backend.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.sql.Timestamp;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import java.util.Map;
-import java.util.Optional;
+import com.app.backend.utils.JwtUtils;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private UserService userService;
+    private final RestTemplate restTemplate;
+    private final JwtUtils jwtUtils;
 
+    @Value("${appwrite.project.id}")
+    private String appwriteProjectId;
 
+    @Value("${appwrite.endpoint}")
+    private String appwriteEndpoint;
 
-    @GetMapping("/info")
-    public ResponseEntity<UserDTO> getUserInfo(@AuthenticationPrincipal OAuth2User user){
-        String email = user.getAttribute("email");
-        String name = user.getAttribute("name");
-        String phone = user.getAttribute("phone");
+    public AuthController(JwtUtils jwtUtils) {
+        this.jwtUtils = jwtUtils;
+        this.restTemplate = new RestTemplate();
+    }
 
-        Optional<User> userExist = userService.getByEmail(email);
+    @PostMapping("/appwrite")
+    public ResponseEntity<?> authenticateWithAppwrite(@RequestHeader("X-Appwrite-Session") String sessionToken) {
+        System.out.println("Received Session Token: " + sessionToken);
 
-        if(userExist.isPresent()){
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Appwrite-Project", appwriteProjectId);
+        headers.add("X-Appwrite-JWT", sessionToken); // Asegurar que se usa el session token correcto
 
-            User info = userExist.get();
+        try {
+            // Llamada a Appwrite para obtener los datos del usuario autenticado
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    appwriteEndpoint + "/account",
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    Map.class
+            );
 
-            UserDTO userInfo = new UserDTO(info.getName(), info.getEmail(),info.getPhoneNumber());
+            Map userData = response.getBody();
+            if (userData == null || !userData.containsKey("email")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No se pudo obtener el usuario de Appwrite");
+            }
 
+            String email = (String) userData.get("email");
+            String jwt = jwtUtils.generateToken(email); // Generar JWT con email
 
-            return ResponseEntity.ok(userInfo);
+            return ResponseEntity.ok(Map.of("token", jwt));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Error al autenticar: " + e.getMessage());
         }
-
-        User newUser = new User();
-        newUser.setEmail(email);
-        newUser.setName(name);
-        newUser.setPhoneNumber(phone);
-        newUser.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-
-        userService.add(newUser);
-        UserDTO userCreated = new UserDTO(newUser.getName(), newUser.getEmail(), newUser.getPhoneNumber());
-
-        return ResponseEntity.ok(userCreated);
-
-        }
+    }
 }

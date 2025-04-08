@@ -5,17 +5,18 @@ import com.app.backend.model.Car;
 import com.app.backend.model.User;
 import com.app.backend.service.CarService;
 import com.app.backend.service.UserService;
+import com.app.backend.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
 
-//Endpoints
 @RestController
 @RequestMapping("/api/car")
 public class CarControllers {
@@ -23,67 +24,102 @@ public class CarControllers {
     @Autowired
     private CarService carService;
 
-
     @Autowired
     private UserService userService;
 
+
     @GetMapping("/all")
-    public List<Car> getAllCars() {
-        return carService.getAllCars();
+    public ResponseEntity<List<Car>> getAllCars() {
+        return ResponseEntity.ok(carService.getAllCars());
     }
 
-    @GetMapping("/get/{car_id}")
-    public Optional<Car> getById(@AuthenticationPrincipal OAuth2User user, @PathVariable int car_id){
-        return carService.getCarInfo(car_id);
-    }
 
-    @PostMapping("/add")
-    public ResponseEntity<?> addCar(@AuthenticationPrincipal OAuth2User user, @RequestBody CarDTO car){
+    @GetMapping("/{carId}")
+    public ResponseEntity<?> getCarById(@PathVariable int carId) {
+        String userEmail = getAuthenticatedEmail();
 
-        if(user == null){
-            return ResponseEntity.status(401).body("Unauthorized Access");
+        Optional<Car> car = carService.getCarById(carId);
+
+        if (car.isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
 
+        // Verificar que el auto pertenezca al usuario
+        if (!car.get().getOwner().getEmail().equals(userEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tienes permiso para acceder a este recurso");
+        }
 
-        User owner = userService.getById(car.getOwnerId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Car new_car = new Car();
-        new_car.setCarPlates(car.getCarPlates());
-        new_car.setModel(car.getModel());
-        new_car.setOwner(owner);
-
-        Car savedCar = carService.addCar(new_car);
-
-        System.out.println("Car saved correctly");
-
-        return ResponseEntity.ok(savedCar);
-
+        return ResponseEntity.ok(car.get());
     }
 
-    
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getCarsByUserId(@PathVariable int userId) {
+        String userEmail = getAuthenticatedEmail();
 
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteCar(@AuthenticationPrincipal OAuth2User user, @PathVariable int id){
-
-        if(user == null){
-            return ResponseEntity.status(401).body("Unauthorized Access");
+        // Verify that the authenticated user is requesting their own data
+        Optional<User> user = userService.getById(userId);
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado");
         }
 
-        boolean deleted = carService.deleteCar(id);
-
-
-        if(deleted){
-            return ResponseEntity.ok("Car deleted");
-        }else{
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Car not found");
+        if (!user.get().getEmail().equals(userEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tienes permiso para acceder a estos recursos");
         }
 
+        List<Car> cars = carService.getCarsByUserId(userId);
+
+        if (cars.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No se encontraron autos para este usuario");
+        }
+
+        return ResponseEntity.ok(cars);
     }
 
 
 
+    @PostMapping
+    public ResponseEntity<?> createCar(@RequestBody CarDTO carDTO) {
+        try {
+
+            User owner = userService.getById(carDTO.getOwnerId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
 
+            Car car = new Car();
+            car.setCarPlates(carDTO.getCarPlates());
+            car.setModel(carDTO.getModel());
+            car.setOwner(owner);
 
+            Car savedCar = carService.saveCar(car);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedCar);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error al crear auto: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{carId}")
+    public ResponseEntity<?> deleteCar(@PathVariable int carId) {
+        String userEmail = getAuthenticatedEmail();
+
+        if (!carService.isCarOwnedBy(carId, userEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No puedes eliminar un auto que no te pertenece");
+        }
+
+        carService.deleteCar(carId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Método helper para obtener el email del JWT
+    private String getAuthenticatedEmail() {
+        return SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+    }
 }

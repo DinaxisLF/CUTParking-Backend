@@ -35,3 +35,9 @@ Thumbs.db
 # Temporary files from IDEs
 *.ipr
 *.iws
+
+# Ignore environment variable files (SECURITY)
+src/main/resources/.env
+.env.local
+.env.production
+.env.development

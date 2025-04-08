@@ -12,6 +12,7 @@ public class ParkingSpotDTO {
     private double latitude;
     private double longitude;
     private String status;
+    private Character section;
 
     public ParkingSpotDTO() {}
 
@@ -20,6 +21,7 @@ public class ParkingSpotDTO {
         this.latitude = spot.getLocation().getY();
         this.longitude = spot.getLocation().getX();
         this.status = spot.getStatus().name();
+        this.section = spot.getSection();
     }
 
     @JsonProperty("latitude")
@@ -39,6 +41,11 @@ public class ParkingSpotDTO {
     public int getId() {
         return id;
     }
+
+    public Character getSection() {
+        return section;
+    }
+
 }
 
 
