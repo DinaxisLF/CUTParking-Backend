@@ -17,6 +17,7 @@ public class BackendApplication {
 		System.setProperty("appwrite.project.id", dotenv.get("APP_WRITE_PROJECT_ID"));
 		System.setProperty("appwrite.endpoint", dotenv.get("APP_WRITE_ENDPOINT"));
 		System.setProperty("appwrite.api.key", dotenv.get("APP_WRITE_API"));
+		System.setProperty("appwrite.bucket.id", dotenv.get("APP_WRITE_BUCKET_ID"));
 	}
 	public static void main(String[] args) {
 		SpringApplication.run(BackendApplication.class, args);

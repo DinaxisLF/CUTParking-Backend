@@ -1,41 +1,40 @@
 package com.app.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.persistence.*;
-
-import org.locationtech.jts.geom.Point;
-
-import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.Map;
+import java.util.List;
 
 @Entity
 public class Reservations {
 
-    public enum ReservationsStatus{
-        ACTIVE,
-        COMPLETED,
-        CANCELLED
-    }
-
-    public static class PointSerializer extends JsonSerializer<Point> {
+    @Converter(autoApply = true)
+    public class ReservationStatusConverter implements AttributeConverter<Reservations.ReservationsStatus, String> {
 
         @Override
-        public void serialize(Point point, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-            if (point != null) {
-                gen.writeStartObject();
-                gen.writeNumberField("latitude", point.getY());  // Latitude is Y
-                gen.writeNumberField("longitude", point.getX()); // Longitude is X
-                gen.writeEndObject();
-            }
+        public String convertToDatabaseColumn(Reservations.ReservationsStatus status) {
+            return status == null ? null : status.name().toLowerCase(); // saves as "active"
+        }
+
+        @Override
+        public Reservations.ReservationsStatus convertToEntityAttribute(String dbValue) {
+            if (dbValue == null) return null;
+            return Reservations.ReservationsStatus.valueOf(dbValue.toUpperCase()); // allows "active"
         }
     }
 
+
+    public enum ReservationsStatus{
+        ACTIVE,
+        COMPLETED,
+        CANCELLED;
+
+        @JsonCreator
+        public static ReservationsStatus fromValue(String value) {
+            return ReservationsStatus.valueOf(value.toUpperCase());
+        }
+    }
 
 
     @Id
@@ -53,17 +52,21 @@ public class Reservations {
     private Timestamp startTime;
     private Timestamp endTime;
 
+    @Convert(converter = ReservationStatusConverter.class)
     @Enumerated(EnumType.STRING)
     private ReservationsStatus status;
-
-    @Column(columnDefinition = "POINT SRID 4236")
-    @JsonProperty("userLocation")
-    @JsonSerialize(using = Reservations.PointSerializer.class)
-    private Point userLocation;
 
     private Timestamp createdAt;
 
     private String qrCodeUrl;
+
+    @ManyToOne
+    @JoinColumn(name = "user_car_id", nullable = false)
+    private Car userCar;
+
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL)
+    private List<Penalty> penalties;
+
 
     public int getReservation_id() {
         return reservation_id;
@@ -113,14 +116,6 @@ public class Reservations {
         this.status = status;
     }
 
-    public Point getUserLocation() {
-        return userLocation;
-    }
-
-    public void setUserLocation(Point userLocation) {
-        this.userLocation = userLocation;
-    }
-
     public Timestamp getCreatedAt() {
         return createdAt;
     }
@@ -135,5 +130,13 @@ public class Reservations {
 
     public void setQrCodeUrl(String qrCodeUrl) {
         this.qrCodeUrl = qrCodeUrl;
+    }
+
+    public Car getUserCar() {
+        return userCar;
+    }
+
+    public void setUserCar(Car userCar) {
+        this.userCar = userCar;
     }
 }

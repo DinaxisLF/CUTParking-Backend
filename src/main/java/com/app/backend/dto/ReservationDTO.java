@@ -1,27 +1,44 @@
 package com.app.backend.dto;
 
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.sql.Timestamp;
 
 public class ReservationDTO {
+    private int reservationId;
     private int userId;
     private int spotId;
+    private Character spotSection;
     private Timestamp startTime;
     private Timestamp endTime;
-    private double latitude;
-    private double longitude;
+    private String qrCodeUrl;
+    private int userCarId;
+    private String carModel;
+    private String carPlates;
 
-    public ReservationDTO(){}
 
-    public ReservationDTO(int userId, int spotId, Timestamp startTime, Timestamp endTime, double latitude, double longitude){
+    public ReservationDTO(int userId, int spotId, Timestamp startTime, Timestamp endTime, int userCarId){
         this.userId = userId;
         this.spotId = spotId;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.userCarId = userCarId;
+    }
+
+    public ReservationDTO(int reservationId, int userId, int spotId, Timestamp startTime, Timestamp endTime, String qrCodeUrl, int userCarId, String carModel, String carPlates, Character spotSection) {
+        this.reservationId = reservationId;
+        this.userId = userId;
+        this.spotId = spotId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.qrCodeUrl = qrCodeUrl;
+        this.userCarId = userCarId;
+        this.carModel = carModel;
+        this.carPlates = carPlates;
+        this.spotSection = spotSection;
+    }
+
+    public ReservationDTO(){
+
     }
 
     public int getUserId() {
@@ -56,20 +73,51 @@ public class ReservationDTO {
         this.endTime = endTime;
     }
 
-    @JsonProperty("latitude")
-    public double getLatitude() {
-        return latitude;
+    public int getReservationId() {
+        return reservationId;
     }
 
-    public void setLatitude(double latitude) {
-        this.latitude = latitude;
-    }
-    @JsonProperty("longitude")
-    public double getLongitude() {
-        return longitude;
+    public void setReservationId(int reservationId) {
+        this.reservationId = reservationId;
     }
 
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
+    public String getQrCodeUrl() {
+        return qrCodeUrl;
+    }
+
+    public void setQrCodeUrl(String qrCodeUrl) {
+        this.qrCodeUrl = qrCodeUrl;
+    }
+
+    public int getUserCarId() {
+        return userCarId;
+    }
+
+    public void setUserCarId(int userCarId) {
+        this.userCarId = userCarId;
+    }
+
+    public String getCarModel() {
+        return carModel;
+    }
+
+    public void setCarModel(String carModel) {
+        this.carModel = carModel;
+    }
+
+    public String getCarPlates() {
+        return carPlates;
+    }
+
+    public void setCarPlates(String carPlates) {
+        this.carPlates = carPlates;
+    }
+
+    public Character getSpotSection() {
+        return spotSection;
+    }
+
+    public void setSpotSection(Character spotSection) {
+        this.spotSection = spotSection;
     }
 }
