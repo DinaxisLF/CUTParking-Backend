@@ -30,10 +30,20 @@ public class Penalty {
     @Column(name = "penalty_time")
     private Timestamp penaltyTime;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PenaltyStatus status;
+
+
     public enum Reason {
         LATE_ARRIVAL,
         UNAUTHORIZED_USAGE,
         CANCELLED
+    }
+
+    public enum PenaltyStatus {
+        PENDING,
+        PAID
     }
 
     public int getPenaltyId() {
@@ -84,5 +94,11 @@ public class Penalty {
         this.penaltyTime = penaltyTime;
     }
 
-    // Getters and Setters
+    public PenaltyStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PenaltyStatus status) {
+        this.status = status;
+    }
 }

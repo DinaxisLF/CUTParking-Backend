@@ -26,7 +26,7 @@ public class SecurityConfig {
                 .csrf().disable()
                 .authorizeHttpRequests()
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/car/**", "/user/info", "/api/parking-spots/**", "/api/reservations/**").authenticated()
+                .requestMatchers("/api/car/**", "/user/info", "/api/parking-spots/**", "/api/reservations/**", "/api/penalties/**").authenticated()
                 .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);

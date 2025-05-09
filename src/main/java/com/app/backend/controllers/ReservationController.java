@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/reservations")
@@ -41,11 +42,20 @@ public class ReservationController {
         return ResponseEntity.ok(dto);
     }
 
-    @GetMapping("/user/{userId}/recent")
-    public ResponseEntity<List<ReservationDTO>> getRecentReservationsByUser(@PathVariable int userId) {
-        List<ReservationDTO> reservations = reservationService.getFirstFiveReservationsByUserId(userId);
+    @GetMapping("/user/{userId}/reservations")
+    public ResponseEntity<List<ReservationDTO>> getAllReservationsByUser(@PathVariable int userId) {
+        List<ReservationDTO> reservations = reservationService.getAllReservationsByUserId(userId);
         return ResponseEntity.ok(reservations);
     }
+
+    @GetMapping("/user/{userId}/active-reservation")
+    public ResponseEntity<Reservations> getActiveReservation(@PathVariable int userId) {
+        Optional<Reservations> activeRes = reservationService.getActiveReservation(userId);
+        return activeRes
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
 
 
     @GetMapping("/verify")

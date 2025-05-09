@@ -41,7 +41,6 @@ public class ParkingSpotController {
     }
 
     @PostMapping("/create")
-    @PreAuthorize("hasRole('ADMIN')") // Solo administradores pueden crear
     public ResponseEntity<ParkingSpot> createSpot(
             @RequestParam double latitude,
             @RequestParam double longitude,

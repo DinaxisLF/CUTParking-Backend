@@ -14,6 +14,7 @@ public class ParkingSpotDTO {
     private String status;
     private Character section;
 
+
     public ParkingSpotDTO() {}
 
     public ParkingSpotDTO(ParkingSpot spot) {

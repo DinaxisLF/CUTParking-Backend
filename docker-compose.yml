@@ -7,10 +7,13 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: snlo2001
       MYSQL_DATABASE: cutpark
+      TZ: America/Regina
     ports:
-      - "3306:3306"  # Map the database port for access
+      - "3306:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql  # Persist data between container restarts
+      - mariadb_data:/var/lib/mysql
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - backend_network
 
@@ -19,13 +22,19 @@ services:
       context: ./
     container_name: backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/cutpark
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/cutpark?serverTimezone=America/Regina
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: snlo2001
+      TZ: America/Regina
+      JAVA_OPTS: '-Duser.timezone=America/Regina'
+
     ports:
-      - "8080:8080"  # Spring Boot app port
+      - "8080:8080"
     depends_on:
       - mariadb
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - backend_network
 

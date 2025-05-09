@@ -121,6 +121,12 @@ public class ReservationService {
         ParkingSpot spot = spotOpt.get();
         Car userCar = userCarOpt.get();
 
+        boolean hasActive = reservationRepository.existsByUserIdAndStatus(userOpt.get().getId(), Reservations.ReservationsStatus.ACTIVE);
+
+        if(hasActive){
+            throw new IllegalStateException("User already has an active reservation");
+        }
+
         // Check if the spot is already reserved during the requested time
         boolean isReserved = reservationRepository.existsBySpotAndStatusAndStartTimeBeforeAndEndTimeAfter(
                 spot, Reservations.ReservationsStatus.ACTIVE, dto.getEndTime(), dto.getStartTime());
@@ -128,6 +134,8 @@ public class ReservationService {
         if (isReserved) {
             throw new RuntimeException("Parking spot is already reserved for the selected time.");
         }
+
+
 
         //Change spot status
         spot.setStatus(ParkingSpot.ParkingStatus.RESERVED);
@@ -212,12 +220,15 @@ public class ReservationService {
         dto.setCarModel(res.getUserCar().getModel());
         dto.setCarPlates(res.getUserCar().getCarPlates());
         dto.setSpotSection(res.getSpot().getSection());
+        dto.setCreatedAt(res.getCreatedAt());
+        dto.setStatus(res.getStatus().name());
+        dto.setCreatedAt(res.getCreatedAt());
 
         return dto;
     }
 
-    public List<ReservationDTO> getFirstFiveReservationsByUserId(int userId) {
-        List<Reservations> reservations = reservationRepository.findTop5ByUserIdOrderByCreatedAtDesc(userId);
+    public List<ReservationDTO> getAllReservationsByUserId(int userId) {
+        List<Reservations> reservations = reservationRepository.findByUserIdOrderByCreatedAtDesc(userId);
 
         return reservations.stream().map(res -> {
             ReservationDTO dto = new ReservationDTO();
@@ -231,9 +242,11 @@ public class ReservationService {
             dto.setCarModel(res.getUserCar().getModel());
             dto.setCarPlates(res.getUserCar().getCarPlates());
             dto.setSpotSection(res.getSpot().getSection());
+            dto.setStatus(res.getStatus().name());
             return dto;
         }).collect(Collectors.toList());
     }
+
 
     public String cancelReservation(int reservationId, int userId) {
         Optional<Reservations> reservationOpt = reservationRepository.findById(reservationId);
@@ -258,7 +271,7 @@ public class ReservationService {
 
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
-        Timestamp startTime = reservation.getStartTime();
+        Timestamp startTime = reservation.getCreatedAt();
 
 
         reservation.setStatus(Reservations.ReservationsStatus.CANCELLED);
@@ -280,6 +293,10 @@ public class ReservationService {
         }
 
         return "Reservation cancelled successfully.";
+    }
+
+    public Optional<Reservations> getActiveReservation(int userId) {
+        return reservationRepository.findByUserIdAndStatus(userId, Reservations.ReservationsStatus.ACTIVE);
     }
 
 

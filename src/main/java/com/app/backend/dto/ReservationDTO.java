@@ -14,6 +14,8 @@ public class ReservationDTO {
     private int userCarId;
     private String carModel;
     private String carPlates;
+    private Timestamp createdAt;
+    private String status;
 
 
     public ReservationDTO(int userId, int spotId, Timestamp startTime, Timestamp endTime, int userCarId){
@@ -64,6 +66,8 @@ public class ReservationDTO {
     public void setStartTime(Timestamp startTime) {
         this.startTime = startTime;
     }
+
+
 
     public Timestamp getEndTime() {
         return endTime;
@@ -119,5 +123,21 @@ public class ReservationDTO {
 
     public void setSpotSection(Character spotSection) {
         this.spotSection = spotSection;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

@@ -14,11 +14,16 @@ public interface ReservationRepository extends JpaRepository<Reservations, Integ
 
     Optional<Reservations> findBySpot_IdAndStatus(int spotId, Reservations.ReservationsStatus status);
 
-    List<Reservations> findTop5ByUserIdOrderByCreatedAtDesc(int userId);
+    List<Reservations> findByUserIdOrderByCreatedAtDesc(int userId);
+
 
     @Query("SELECT r FROM Reservations r WHERE r.status = 'ACTIVE' AND r.startTime < :now")
     List<Reservations> findActiveReservationsPastStartTime(@Param("now") Timestamp now);
 
+    boolean existsByUserIdAndStatus(int userId, Reservations.ReservationsStatus status);
+
+
+    Optional<Reservations> findByUserIdAndStatus(int userId, Reservations.ReservationsStatus status);
 
     boolean existsBySpotAndStatusAndStartTimeBeforeAndEndTimeAfter(
             ParkingSpot spot,
