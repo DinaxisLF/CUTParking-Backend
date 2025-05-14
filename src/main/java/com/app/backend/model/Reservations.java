@@ -27,6 +27,7 @@ public class Reservations {
 
     public enum ReservationsStatus{
         ACTIVE,
+        ARRIVE,
         COMPLETED,
         CANCELLED;
 

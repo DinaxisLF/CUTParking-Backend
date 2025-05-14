@@ -24,6 +24,10 @@ public class Car {
     @JsonBackReference
     private User owner;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
+
     public Car() {
     }
 
@@ -60,5 +64,13 @@ public class Car {
 
     public void setOwner(User owner) {
         this.owner = owner;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

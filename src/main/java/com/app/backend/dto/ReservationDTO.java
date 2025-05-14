@@ -43,6 +43,18 @@ public class ReservationDTO {
 
     }
 
+    public static class ExtendReservationRequest {
+        private Timestamp newEndTime;
+
+        public Timestamp getNewEndTime() {
+            return newEndTime;
+        }
+
+        public void setNewEndTime(Timestamp newEndTime) {
+            this.newEndTime = newEndTime;
+        }
+    }
+
     public int getUserId() {
         return userId;
     }

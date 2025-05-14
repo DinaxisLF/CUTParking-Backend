@@ -1,9 +1,12 @@
 package com.app.backend.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public class CarDTO {
     private String carPlates;
     private String model;
-    private int ownerId;  // Only store the user ID
+    private int ownerId;
+    private String image;
 
     // Getters and Setters
     public String getCarPlates() {
@@ -28,5 +31,13 @@ public class CarDTO {
 
     public void setOwnerId(int ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 }

@@ -57,6 +57,30 @@ public class ReservationController {
     }
 
 
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<?> completeReservation(@PathVariable Integer id) {
+        reservationService.completeReservation(id);
+        return ResponseEntity.ok("Reservation marked as completed and spot is now available.");
+    }
+
+    @PutMapping("/{id}/arrived")
+    public ResponseEntity<?> markUserArrival(@PathVariable Integer id) {
+        reservationService.markUserArrival(id);
+        return ResponseEntity.ok("User arrival confirmed. Spot marked as OCCUPIED, reservation marked as ARRIVE.");
+    }
+
+    @PutMapping("/{id}/extend")
+    public ResponseEntity<?> extendReservation(@PathVariable Integer id, @RequestBody ReservationDTO.ExtendReservationRequest request) {
+        try {
+            reservationService.extendReservation(id, request.getNewEndTime());
+            return ResponseEntity.ok("Reservation extended successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("An error occurred.");
+        }
+    }
+
 
     @GetMapping("/verify")
     public ResponseEntity<String> verifyReservation(

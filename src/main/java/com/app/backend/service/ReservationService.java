@@ -151,7 +151,11 @@ public class ReservationService {
         reservation.setUserCar(userCar);
 
         // Generate QR code image
-        String qrCodeText = "Reservation for user " + user.getName() + " at " + new Timestamp(System.currentTimeMillis());
+        String qrCodeText = "UserID: " + user.getId() +
+                "\nSpot Number: " + spot.getId() +
+                "\nStart Time: " + dto.getStartTime() +
+                "\nEnd Time: " + dto.getEndTime();
+
         String fileName = "reservation_" + user.getId() + "_" + System.currentTimeMillis() + ".png";
         String localPath = "qrcodes/" + fileName;
 
@@ -298,6 +302,62 @@ public class ReservationService {
     public Optional<Reservations> getActiveReservation(int userId) {
         return reservationRepository.findByUserIdAndStatus(userId, Reservations.ReservationsStatus.ACTIVE);
     }
+
+    public void completeReservation(Integer reservationId) {
+        Reservations reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        reservation.setStatus(Reservations.ReservationsStatus.COMPLETED);
+
+        ParkingSpot spot = reservation.getSpot();
+        spot.setStatus(ParkingSpot.ParkingStatus.AVAILABLE);
+
+        parkingSpotRepository.save(spot);
+        reservationRepository.save(reservation);
+    }
+
+    public void markUserArrival(Integer reservationId) {
+        Reservations reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+
+
+        // Set status on reservation
+        reservation.setStatus(Reservations.ReservationsStatus.ARRIVE);
+
+        // Set status on parking spot
+        ParkingSpot spot = reservation.getSpot();
+        spot.setStatus(ParkingSpot.ParkingStatus.OCCUPIED);
+
+        // Save changes
+        reservationRepository.save(reservation);
+        parkingSpotRepository.save(spot);
+    }
+
+    public void extendReservation(Integer reservationId, Timestamp newEndTime) {
+        Reservations reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+
+        if (reservation.getStatus() != Reservations.ReservationsStatus.ARRIVE) {
+            throw new IllegalArgumentException("Only ARRIVE reservations can be extended.");
+        }
+
+        if (newEndTime.before(reservation.getEndTime())) {
+            throw new IllegalArgumentException("New end time must be after current end time.");
+        }
+
+        // Validar que no haya conflicto con otras reservas para el mismo spot
+        boolean hasConflict = reservationRepository.existsBySpotAndStatusAndStartTimeBeforeAndEndTimeAfter(
+                reservation.getSpot(), Reservations.ReservationsStatus.ACTIVE, newEndTime, reservation.getEndTime());
+
+        if (hasConflict) {
+            throw new IllegalArgumentException("Cannot extend reservation: time conflict with another reservation.");
+        }
+
+        reservation.setEndTime(newEndTime);
+        reservationRepository.save(reservation);
+    }
+
 
 
     public VerificationResult verifyQRCode(int reservationId, int userId) {

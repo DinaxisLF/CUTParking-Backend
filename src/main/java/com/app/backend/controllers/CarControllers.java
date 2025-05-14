@@ -5,17 +5,19 @@ import com.app.backend.model.Car;
 import com.app.backend.model.User;
 import com.app.backend.service.CarService;
 import com.app.backend.service.UserService;
-import com.app.backend.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/car")
@@ -70,38 +72,29 @@ public class CarControllers {
 
         List<Car> cars = carService.getCarsByUserId(userId);
 
-        if (cars.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No se encontraron autos para este usuario");
-        }
 
         return ResponseEntity.ok(cars);
     }
 
 
 
-    @PostMapping
-    public ResponseEntity<?> createCar(@RequestBody CarDTO carDTO) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CarDTO> createCar(
+            @RequestPart("car") String carJson,
+            @RequestPart("image") MultipartFile imageFile) {
         try {
-
-            User owner = userService.getById(carDTO.getOwnerId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
-
-            Car car = new Car();
-            car.setCarPlates(carDTO.getCarPlates());
-            car.setModel(carDTO.getModel());
-            car.setOwner(owner);
-
-            Car savedCar = carService.saveCar(car);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedCar);
-
+            System.out.println("Received car JSON: " + carJson);
+            // Deserialize the JSON string to CarDTO
+            CarDTO carDTO = new ObjectMapper().readValue(carJson, CarDTO.class);
+            CarDTO createdCar = carService.createCar(carDTO, imageFile);
+            return ResponseEntity.ok(createdCar);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body("Error al crear auto: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+
 
     @DeleteMapping("/{carId}")
     public ResponseEntity<?> deleteCar(@PathVariable int carId) {
