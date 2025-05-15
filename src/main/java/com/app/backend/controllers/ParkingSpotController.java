@@ -1,11 +1,14 @@
 package com.app.backend.controllers;
 
 
+
 import com.app.backend.model.ParkingSpot;
+
 import com.app.backend.service.ParkingSpotService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,9 +23,15 @@ public class ParkingSpotController {
     @Autowired
     private ParkingSpotService parkingSpotService;
 
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+
+
     public ParkingSpotController(ParkingSpotService parkingSpotService) {
         this.parkingSpotService = parkingSpotService;
     }
+
 
     @GetMapping("/all")
     public ResponseEntity<List<ParkingSpot>> getAllSpots() {
@@ -72,4 +81,6 @@ public class ParkingSpotController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Parking spot not found");
         }
     }
+
+
 }

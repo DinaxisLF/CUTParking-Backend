@@ -4,7 +4,6 @@ import com.app.backend.dto.ReservationDTO;
 import com.app.backend.model.Reservations;
 import com.app.backend.service.ReservationService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +16,7 @@ public class ReservationController {
 
     @Autowired
     private ReservationService reservationService;
+
 
 
 
@@ -33,6 +33,7 @@ public class ReservationController {
             @RequestParam int userId
     ) {
         String result = reservationService.cancelReservation(reservationId, userId);
+
         return ResponseEntity.ok(result);
     }
 

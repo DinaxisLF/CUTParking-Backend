@@ -47,6 +47,25 @@ public class ParkingSpotDTO {
         return section;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setSection(Character section) {
+        this.section = section;
+    }
 }
 
 

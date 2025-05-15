@@ -7,8 +7,11 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.ExpressionException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,5 +61,15 @@ public class ParkingSpotService {
         return false;
     }
 
+    @Transactional
+    public ParkingSpot updateStatus(int id, ParkingSpot.ParkingStatus status) {
+        ParkingSpot spot = parkingSpotRepository.findById(id)
+                .orElseThrow(() -> new ExpressionException("Parking spot not found "));
+
+        spot.setStatus(status);
+        return parkingSpotRepository.save(spot);
+    }
 }
+
+
 

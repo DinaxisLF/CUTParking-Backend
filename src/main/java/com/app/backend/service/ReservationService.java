@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -42,23 +42,7 @@ public class ReservationService {
     @Value("${appwrite.bucket.id}")
     private  String BUCKET_ID;
 
-    public class VerificationResult {
-        private boolean success;
-        private String message;
 
-        public VerificationResult(boolean success, String message) {
-            this.success = success;
-            this.message = message;
-        }
-
-        public boolean isSuccess() {
-            return success;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-    }
 
 
 
@@ -102,6 +86,9 @@ public class ReservationService {
     @Autowired
     private ParkingSpotRepository parkingSpotRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
 
@@ -142,6 +129,8 @@ public class ReservationService {
 
         //Change spot status
         spot.setStatus(ParkingSpot.ParkingStatus.RESERVED);
+
+        notificationService.broadcastStatusChange(spot);
 
         // Create reservation
         Reservations reservation = new Reservations();
@@ -195,6 +184,7 @@ public class ReservationService {
         // Save reservation
         Reservations saved = reservationRepository.save(reservation);
 
+        notificationService.notifyNewReservation(saved);
 
         ReservationDTO responseDTO = new ReservationDTO();
         responseDTO.setReservationId(saved.getReservation_id());
@@ -288,6 +278,8 @@ public class ReservationService {
         spot.setStatus(ParkingSpot.ParkingStatus.AVAILABLE);
         parkingSpotRepository.save(spot);
 
+        notificationService.broadcastStatusChange(spot);
+
         // Si cancela 5+ min después del inicio, aplicar penalización
         if (now.after(Timestamp.from(startTime.toInstant().plus(5, ChronoUnit.MINUTES)))) {
             penaltyService.createPenalty(
@@ -296,6 +288,7 @@ public class ReservationService {
                     new BigDecimal("30.00"),
                     Penalty.Reason.CANCELLED
             );
+
             return "Reservation cancelled — late cancel penalty applied.";
         }
 
@@ -316,6 +309,7 @@ public class ReservationService {
         spot.setStatus(ParkingSpot.ParkingStatus.AVAILABLE);
 
         parkingSpotRepository.save(spot);
+        notificationService.broadcastStatusChange(spot);
         reservationRepository.save(reservation);
     }
 
@@ -335,6 +329,7 @@ public class ReservationService {
         // Save changes
         reservationRepository.save(reservation);
         parkingSpotRepository.save(spot);
+        notificationService.broadcastStatusChange(spot);
     }
 
     public void extendReservation(Integer reservationId, Timestamp newEndTime) {
