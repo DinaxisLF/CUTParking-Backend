@@ -2,15 +2,13 @@ package com.app.backend.service;
 
 import com.app.backend.dto.ReservationDTO;
 import com.app.backend.model.*;
-import com.app.backend.repository.CarRepository;
-import com.app.backend.repository.ParkingSpotRepository;
-import com.app.backend.repository.ReservationRepository;
-import com.app.backend.repository.UserRepository;
+import com.app.backend.repository.*;
 import com.app.backend.utils.QRCodeUtil;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.json.JSONObject;
 import java.io.File;
@@ -23,6 +21,8 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,6 +95,9 @@ public class ReservationService {
 
     @Autowired
     private PenaltyService penaltyService;
+
+    @Autowired
+    private PenaltyRepository penaltyRepository;
 
     @Autowired
     private ParkingSpotRepository parkingSpotRepository;
@@ -358,52 +361,87 @@ public class ReservationService {
         reservationRepository.save(reservation);
     }
 
+    @Scheduled(fixedRate = 60000)
+    public void autoCancelUnconfirmedReservations() {
+        Instant now = Instant.now();
 
+        List<Reservations> pendingReservations = reservationRepository.findActiveReservationsPastStartTime(Timestamp.from(now));
 
-    public VerificationResult verifyQRCode(int reservationId, int userId) {
-        Optional<Reservations> reservationOpt = reservationRepository.findById(reservationId);
-        Optional<User> userOpt = userRepository.findById(userId);
+        for (Reservations reservation : pendingReservations) {
+            Instant startTime = reservation.getStartTime().toInstant();
 
-        if (reservationOpt.isEmpty() || userOpt.isEmpty()) {
-            return new VerificationResult(false, "Reservation or user not found.");
+            boolean isLate = Duration.between(startTime, now).toMinutes() >= 10;
+
+            if (isLate && reservation.getStatus() == Reservations.ReservationsStatus.ACTIVE) {
+                // Cancelar reserva
+                reservation.setStatus(Reservations.ReservationsStatus.CANCELLED);
+                reservationRepository.save(reservation);
+
+                // Liberar espacio
+                ParkingSpot spot = reservation.getSpot();
+                spot.setStatus(ParkingSpot.ParkingStatus.AVAILABLE);
+                parkingSpotRepository.save(spot);
+
+                // Crear penalización
+                Penalty penalty = new Penalty();
+                penalty.setUser(reservation.getUser());
+                penalty.setReservation(reservation);
+                penalty.setAmount(BigDecimal.valueOf(100)); // Puedes definir este valor fijo o variable
+                penalty.setReason(Penalty.Reason.LATE_ARRIVAL);
+                penalty.setPenaltyTime(new Timestamp(System.currentTimeMillis()));
+                penalty.setStatus(Penalty.PenaltyStatus.PENDING);
+
+                penaltyRepository.save(penalty);
+
+                System.out.println("Reserva " + reservation.getReservation_id() + " cancelada automáticamente y penalización creada.");
+            }
         }
-
-        Reservations reservation = reservationOpt.get();
-        User user = userOpt.get();
-
-        //Unauthorized usage
-        if (reservation.getUser().getId() != userId) {
-            penaltyService.createPenalty(
-                    user,
-                    reservation,
-                    new BigDecimal("100.00"),
-                    Penalty.Reason.UNAUTHORIZED_USAGE
-            );
-            return new VerificationResult(false, "Unauthorized usage — penalty applied.");
-        }
-
-        // Late arrival check (after 10 min of start time)
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        if (now.after(Timestamp.from(reservation.getStartTime().toInstant().plus(15, ChronoUnit.MINUTES)))) {
-            penaltyService.createPenalty(
-                    user,
-                    reservation,
-                    new BigDecimal("50.00"),
-                    Penalty.Reason.LATE_ARRIVAL
-            );
-
-            ParkingSpot spot = reservation.getSpot();
-            spot.setStatus(ParkingSpot.ParkingStatus.AVAILABLE);
-            parkingSpotRepository.save(spot);
-            return new VerificationResult(false, "Late arrival — penalty applied.");
-        }
-
-        // ✅ Valid usage
-        ParkingSpot spot = reservation.getSpot();
-        spot.setStatus(ParkingSpot.ParkingStatus.OCCUPIED);
-        parkingSpotRepository.save(spot);
-        return new VerificationResult(true, "Reservation is valid!");
     }
+
+    @Scheduled(fixedRate = 60000)
+    public void penalizeLateDepartureAccumulatively() {
+        Instant now = Instant.now();
+        List<Reservations> overdueReservations = reservationRepository
+                .findArrivedReservationsPastEndTime(Timestamp.from(now));
+
+        for (Reservations reservation : overdueReservations) {
+            Instant endTime = reservation.getEndTime().toInstant();
+            long minutesLate = Duration.between(endTime, now).toMinutes();
+
+            if (minutesLate < 5 || minutesLate > 20) continue;
+
+            int penaltyBlocks = (int) (minutesLate / 5); // Máximo 4 bloques
+            BigDecimal amount = BigDecimal.valueOf(penaltyBlocks * 25); // Ej: 25 por cada bloque
+
+            Optional<Penalty> existingPenaltyOpt = penaltyRepository.findByReservationAndReason(
+                    reservation, Penalty.Reason.LATE_ARRIVAL);
+
+            if (existingPenaltyOpt.isPresent()) {
+                Penalty penalty = existingPenaltyOpt.get();
+                if (penalty.getAmount().compareTo(amount) < 0) {
+                    penalty.setAmount(amount);
+                    penalty.setPenaltyTime(new Timestamp(System.currentTimeMillis()));
+                    penaltyRepository.save(penalty);
+                    System.out.println("Actualizada penalización para reserva " + reservation.getReservation_id()
+                            + " a monto $" + amount);
+                }
+            } else {
+                Penalty newPenalty = new Penalty();
+                newPenalty.setUser(reservation.getUser());
+                newPenalty.setReservation(reservation);
+                newPenalty.setAmount(amount);
+                newPenalty.setReason(Penalty.Reason.LATE_ARRIVAL);
+                newPenalty.setPenaltyTime(new Timestamp(System.currentTimeMillis()));
+                newPenalty.setStatus(Penalty.PenaltyStatus.PENDING);
+                penaltyRepository.save(newPenalty);
+                System.out.println("Creada penalización para reserva " + reservation.getReservation_id()
+                        + " con monto inicial $" + amount);
+            }
+        }
+    }
+
+
+
 
 
 

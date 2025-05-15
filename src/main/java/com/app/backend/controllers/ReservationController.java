@@ -82,17 +82,5 @@ public class ReservationController {
     }
 
 
-    @GetMapping("/verify")
-    public ResponseEntity<String> verifyReservation(
-            @RequestParam int reservationId,
-            @RequestParam int userId
-    ) {
-        ReservationService.VerificationResult result = reservationService.verifyQRCode(reservationId, userId);
-        if (result.isSuccess()) {
-            return ResponseEntity.ok(result.getMessage());
-        } else {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result.getMessage());
-        }
-    }
 
 }

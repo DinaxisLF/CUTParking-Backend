@@ -25,6 +25,10 @@ public interface ReservationRepository extends JpaRepository<Reservations, Integ
 
     Optional<Reservations> findByUserIdAndStatus(int userId, Reservations.ReservationsStatus status);
 
+    @Query("SELECT r FROM Reservations r WHERE r.status = 'ARRIVED' AND r.endTime < :now")
+    List<Reservations> findArrivedReservationsPastEndTime(@Param("now") Timestamp now);
+
+
     boolean existsBySpotAndStatusAndStartTimeBeforeAndEndTimeAfter(
             ParkingSpot spot,
             Reservations.ReservationsStatus status,

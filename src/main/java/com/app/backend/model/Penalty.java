@@ -37,7 +37,7 @@ public class Penalty {
 
     public enum Reason {
         LATE_ARRIVAL,
-        UNAUTHORIZED_USAGE,
+        LATE_LEAVE,
         CANCELLED
     }
 
